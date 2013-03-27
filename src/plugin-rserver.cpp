@@ -42,9 +42,12 @@ http://www.gnu.org/licenses/gpl-2.0.html
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include <skivvy/str.h>
+#include <sookee/str.h>
+#include <sookee/bug.h>
+#include <sookee/log.h>
 #include <skivvy/logrep.h>
-#include <skivvy/types.h>
+#include <skivvy/utils.h>
+#include <sookee/types.h>
 #include <skivvy/socketstream.h>
 
 namespace skivvy { namespace ircbot {
@@ -52,9 +55,9 @@ namespace skivvy { namespace ircbot {
 IRC_BOT_PLUGIN(RServerIrcBotPlugin);
 PLUGIN_INFO("rserver", "Remote Server", "0.1");
 
-using namespace skivvy::types;
+using namespace sookee::types;
 using namespace skivvy::utils;
-using namespace skivvy::string;
+using namespace sookee::string;
 
 const str RSERVER_PORT = "rserver.port";
 const RServerIrcBotPlugin::port RSERVER_PORT_DEFAULT = 7334L;
