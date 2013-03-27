@@ -61,8 +61,8 @@ using namespace sookee::string;
 
 const str RSERVER_PORT = "rserver.port";
 const RServerIrcBotPlugin::port RSERVER_PORT_DEFAULT = 7334L;
-const str RSERVER_HOST = "rserver.host";
-const str RSERVER_HOST_DEFAULT = "0.0.0.0";
+const str RSERVER_BIND = "rserver.bind";
+const str RSERVER_BIND_DEFAULT = "0.0.0.0";
 
 RServerIrcBotPlugin::RServerIrcBotPlugin(IrcBot& bot)
 : BasicIrcBotPlugin(bot), ss(::socket(PF_INET, SOCK_STREAM, 0))
@@ -76,7 +76,7 @@ bool RServerIrcBotPlugin::bind()//port p, const std::string& iface)
 {
 	bug_func();
 	port p = bot.get(RSERVER_PORT, RSERVER_PORT_DEFAULT);
-	str host = bot.get(RSERVER_HOST, RSERVER_HOST_DEFAULT);
+	str host = bot.get(RSERVER_BIND, RSERVER_BIND_DEFAULT);
 	sockaddr_in addr;
 	std::memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
