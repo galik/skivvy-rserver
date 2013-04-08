@@ -115,6 +115,7 @@ bool RServerIrcBotPlugin::listen()//port p)
 					else
 					{
 						log("ERROR: " << strerror(errno));
+						::close(cs);
 						return false;
 					}
 				}
