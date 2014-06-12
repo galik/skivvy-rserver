@@ -65,14 +65,14 @@ const str RSERVER_BIND = "rserver.bind";
 const str RSERVER_BIND_DEFAULT = "0.0.0.0";
 
 RServerIrcBotPlugin::RServerIrcBotPlugin(IrcBot& bot)
-: BasicIrcBotPlugin(bot), ss(::socket(PF_INET, SOCK_STREAM, 0))
+: BasicIrcBotPlugin(bot), ss(::socket(PF_INET, SOCK_STREAM, 0)), done(false)
 {
 	fcntl(ss, F_SETFL, fcntl(ss, F_GETFL, 0) | O_NONBLOCK);
 }
 
 RServerIrcBotPlugin::~RServerIrcBotPlugin() {}
 
-bool RServerIrcBotPlugin::bind()//port p, const std::string& iface)
+bool RServerIrcBotPlugin::bind()
 {
 	bug_func();
 	port p = bot.get(RSERVER_PORT, RSERVER_PORT_DEFAULT);
@@ -85,7 +85,9 @@ bool RServerIrcBotPlugin::bind()//port p, const std::string& iface)
 	return ::bind(ss, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != -1;
 }
 
-bool RServerIrcBotPlugin::listen()//port p)
+
+
+bool RServerIrcBotPlugin::listen()
 {
 	bug_func();
 	if(!bind())
@@ -93,6 +95,14 @@ bool RServerIrcBotPlugin::listen()//port p)
 		log("ERROR: " << std::strerror(errno));
 		return false;
 	}
+
+	int option = 1;
+	if(setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)))
+	{
+		log("ERROR: " << std::strerror(errno));
+		return false;
+	}
+
 	if(::listen(ss, 10) == -1)
 	{
 		log("ERROR: " << std::strerror(errno));
@@ -116,13 +126,22 @@ bool RServerIrcBotPlugin::listen()//port p)
 					{
 						log("ERROR: " << strerror(errno));
 						::close(cs);
-						return false;
+						continue;
 					}
 				}
 			}
 
 			if(!done)
-				std::async(std::launch::async, [&]{ process(cs); });
+			{
+				if(connectee.sa_family != AF_INET)
+				{
+					log("WARN: only accepting connections for ipv4");
+					::close(cs);
+					continue;
+				}
+				if(accepts.empty() || accepts.count(((sockaddr_in*) &connectee)->sin_addr.s_addr))
+					std::async(std::launch::async, [&]{ process(cs); });
+			}
 		}
 	}
 	return true;
@@ -158,6 +177,35 @@ void RServerIrcBotPlugin::off(const message& msg)
 bool RServerIrcBotPlugin::initialize()
 {
 	bug_func();
+
+	str_vec ips = bot.get_vec("rserver.accept.ipv4");
+
+	in_addr_t in;
+
+	for(const str& ip: ips)
+	{
+		int e = inet_pton(AF_INET, ip.c_str(), &in);
+
+		if(e == -1)
+			log("ERROR: " << strerror(errno));
+		else if(e == 0)
+			log("ERROR: ipv4 address not valis: " << ip);
+		else if(e == 1)
+		{
+			accepts.insert(in);
+			log("ADDING ALLOWED IPv4: " << ip);
+		}
+	}
+
+	if(accepts.empty())
+	{
+		log("RSERVER: INSECURE MODE");
+	}
+	else
+	{
+		log("RSERVER: SECURE");
+	}
+
 	con = std::async(std::launch::async, [&]{ listen(); });
 	return true;
 }

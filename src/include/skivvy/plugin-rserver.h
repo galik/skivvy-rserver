@@ -35,8 +35,13 @@ http://www.gnu.org/licenses/gpl-2.0.html
 
 #include <mutex>
 #include <future>
+#include <set>
+
+#include <netinet/in.h>
 
 namespace skivvy { namespace ircbot {
+
+typedef std::set<in_addr_t> ipv4addr_set;
 
 /**
  *
@@ -52,6 +57,8 @@ private:
 	socket ss; // server socket
 	std::future<void> con;
 	bool done;
+
+	ipv4addr_set accepts;
 
 	bool bind();//port p, const std::string& iface = "0.0.0.0");
 	bool listen();//port p);
