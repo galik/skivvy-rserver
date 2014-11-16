@@ -57,7 +57,7 @@ PLUGIN_INFO("rserver", "Remote Server", "0.1");
 
 using namespace sookee::types;
 using namespace skivvy::utils;
-using namespace sookee::string;
+using namespace sookee::utils;
 
 const str RSERVER_PORT = "rserver.port";
 const RServerIrcBotPlugin::port RSERVER_PORT_DEFAULT = 7334L;
@@ -84,8 +84,6 @@ bool RServerIrcBotPlugin::bind()
 	addr.sin_addr.s_addr = inet_addr(host.c_str());
 	return ::bind(ss, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != -1;
 }
-
-
 
 bool RServerIrcBotPlugin::listen()
 {
