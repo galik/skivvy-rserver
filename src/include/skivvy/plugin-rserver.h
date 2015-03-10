@@ -38,6 +38,7 @@ http://www.gnu.org/licenses/gpl-2.0.html
 #include <set>
 
 #include <netinet/in.h>
+#include <sys/poll.h>
 
 namespace skivvy { namespace ircbot {
 
@@ -56,12 +57,15 @@ public:
 private:
 	socket ss; // server socket
 	std::future<void> con;
-	bool done;
+	std::atomic<bool> done;
+	std::atomic<bool> dusted;
+
+	struct pollfd ufd;
 
 	ipv4addr_set accepts;
 
-	bool bind();//port p, const std::string& iface = "0.0.0.0");
-	bool listen();//port p);
+	bool bind();
+	bool listen();
 	void process(socket cs);
 
 	void on(const message& msg);
@@ -69,19 +73,19 @@ private:
 
 public:
 	RServerIrcBotPlugin(IrcBot& bot);
-	virtual ~RServerIrcBotPlugin();
+	//virtual ~RServerIrcBotPlugin() {}
 
 	// INTERFACE: BasicIrcBotPlugin
 
-	virtual bool initialize();
+	bool initialize() override;
 
 	// INTERFACE: IrcBotPlugin
 
-	virtual std::string get_id() const;
-	virtual std::string get_name() const;
-	virtual std::string get_version() const;
+	std::string get_id() const override;
+	std::string get_name() const override;
+	std::string get_version() const override;
 
-	virtual void exit();
+	void exit() override;
 };
 
 }} // sookee::ircbot
