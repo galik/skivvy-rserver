@@ -33,7 +33,10 @@ AC_PROG_CXX
 AC_PROG_INSTALL
 
 AC_LANG(C++)
-AC_MSG_CHECKING(if $CXX supports C++11)
+AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
+
+PKG_CHECK_MODULES([SOOKEE], [libsookee])
+PKG_CHECK_MODULES([SKIVVY], [libskivvy])
 
 AC_CONFIG_MACRO_DIR([m4])
 
