@@ -154,7 +154,7 @@ bool RServerIrcBotPlugin::listen()
 
 	while(!this->done)
 	{
-		bug("POLLING: =================================");
+//		bug("POLLING: =================================");
 		auto rv = poll(&ufd, 1, 1000);
 
 		if(!rv)
