@@ -130,7 +130,7 @@ bool RServerIrcBotPlugin::bind()
 	}
 
 	int option = 1;
-	if(setsockopt(ss, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, &option, sizeof(option)))
+	if(setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)))
 	{
 		log("ERROR: " << std::strerror(errno));
 		return false;
