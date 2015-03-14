@@ -70,6 +70,9 @@ RServerIrcBotPlugin::RServerIrcBotPlugin(IrcBot& bot)
 , dusted(false)
 {
 //	fcntl(ss, F_SETFL, fcntl(ss, F_GETFL, 0) | O_NONBLOCK);
+//	int option = 1;
+//	if(setsockopt(ss, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, &option, sizeof(option)))
+//		log("ERROR: " << std::strerror(errno));
 }
 
 //RServerIrcBotPlugin::~RServerIrcBotPlugin() {}
@@ -126,6 +129,13 @@ bool RServerIrcBotPlugin::bind()
 		return false;
 	}
 
+	int option = 1;
+	if(setsockopt(ss, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, &option, sizeof(option)))
+	{
+		log("ERROR: " << std::strerror(errno));
+		return false;
+	}
+
 	return true;
 }
 
@@ -138,26 +148,17 @@ bool RServerIrcBotPlugin::listen()
 		return false;
 	}
 
-	int option = 1;
-	if(setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)))
-	{
-		log("ERROR: " << std::strerror(errno));
-		return false;
-	}
-
 	if(::listen(ss, 10) == -1)
 	{
 		log("ERROR: " << std::strerror(errno));
 		return false;
 	}
 
+	int rv;
 
 	while(!this->done)
 	{
-//		bug("POLLING: =================================");
-		auto rv = poll(&ufd, 1, 1000);
-
-		if(!rv)
+		if(!(rv = poll(&ufd, 1, 1000)))
 			continue;
 		else if(rv == -1)
 		{
@@ -212,14 +213,29 @@ bool RServerIrcBotPlugin::listen()
 
 void RServerIrcBotPlugin::process(socket cs)
 {
+	lock_guard lock(mtx);
 	net::socketstream ss(cs);
 	// receive null terminated string
-	std::string cmd;
-	char c;
-	while(ss.get(c) && c)
-		cmd.append(1, c);
+	str cmd;
+
+//	char c;
+//	while(ss.get(c) && c)
+//		cmd.append(1, c);
+	sgl(ss, cmd, '\0');
+
 	bug("cmd: " << cmd);
-	if(!trim(cmd).empty())
+
+	if(trim(cmd).empty())
+		return;
+
+	if(cmd == "/get_status")
+	{
+		for(const auto& s: status)
+			ss << s << '\n';
+		ss << std::flush;
+		status.clear();
+	}
+	else
 	{
 		soss oss;
 		bot.exec(cmd, &oss);
@@ -229,11 +245,13 @@ void RServerIrcBotPlugin::process(socket cs)
 
 void RServerIrcBotPlugin::on(const message& msg)
 {
+	(void) msg;
 	BUG_COMMAND(msg);
 }
 
 void RServerIrcBotPlugin::off(const message& msg)
 {
+	(void) msg;
 	BUG_COMMAND(msg);
 }
 
@@ -260,17 +278,59 @@ bool RServerIrcBotPlugin::initialize()
 		}
 	}
 
-	if(accepts.empty())
-	{
-		log("RSERVER: INSECURE MODE");
-	}
-	else
-	{
-		log("RSERVER: SECURE");
-	}
+	log("RSERVER: " << (accepts.empty()?"INSECURE":"SECURE") << " MODE");
 
 	con = std::async(std::launch::async, [&]{ listen(); });
+
+	bot.add_monitor(*this);
 	return true;
+}
+
+// INTERFACE: IrcBotMonitor
+
+void RServerIrcBotPlugin::event(const message& msg)
+{
+//	bug_func();
+	BUG_COMMAND(msg);
+	if(msg.command == "NOTICE")
+	{
+		lock_guard lock(mtx);
+		add_status_msg(msg.get_trailing());
+	}
+	if(msg.command == "MODE")
+	{
+		auto params = msg.get_params();
+		if(params.size() == 3 && params[2] == bot.nick)
+		{
+			//---------------------------------------------------
+			//                  line: :Galik!~galik@unaffiliated/galik MODE #skivvy +o Skivvy
+			//                prefix: Galik!~galik@unaffiliated/galik
+			//               command: MODE
+			//                params:  #skivvy +o Skivvy
+			// get_servername()     :
+			// get_nickname()       : Galik
+			// get_user()           : ~galik
+			// get_host()           : unaffiliated/galik
+			// param                : #skivvy
+			// param                : +o
+			// param                : Skivvy
+			// middle               : #skivvy
+			// middle               : +o
+			// middle               : Skivvy
+			// trailing             :
+			// get_nick()           : Galik
+			// get_chan()           : #skivvy
+			// get_user_cmd()       :
+			// get_user_params()    :
+			//---------------------------------------------------
+			if(params[1] == "+o")
+			{
+				lock_guard lock(mtx);
+				add_status_msg(msg.get_nickname() + " gives channel operator status to "
+					+ bot.nick);
+			}
+		}
+	}
 }
 
 // INTERFACE: IrcBotPlugin
@@ -281,7 +341,6 @@ std::string RServerIrcBotPlugin::get_version() const { return VERSION; }
 
 void RServerIrcBotPlugin::exit()
 {
-	bug_func();
 	this->done = true;
 
 	st_time_point timeout = st_clk::now() + std::chrono::seconds(30);
@@ -290,27 +349,10 @@ void RServerIrcBotPlugin::exit()
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	if(!dusted)
-		log("ERROR: server faild to stop");
+		log("ERROR: server failed to stop");
 
-//	close(ss);
-	// TODO: find a way to get past block...
-	//if(con.valid()) con.get();
 	if(con.valid())
 		con.get();
-//	{
-//		bug("waiting for server to stop:");
-//		auto status = con.wait_for(std::chrono::seconds(30));
-//
-//		if(status == std::future_status::deferred)
-//			log("ERROR: deferred should never happen");
-//		if(status == std::future_status::timeout)
-//			log("ERROR: server end timmed out");
-//		else if(status == std::future_status::ready)
-//		{
-//			bug("server stopped");
-//			con.get();
-//		}
-//	}
 }
 
 }} // sookee::ircbot

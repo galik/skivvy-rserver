@@ -49,6 +49,7 @@ typedef std::set<in_addr_t> ipv4addr_set;
  */
 class RServerIrcBotPlugin
 : public BasicIrcBotPlugin
+, public IrcBotMonitor
 {
 	typedef int socket;
 public:
@@ -63,6 +64,19 @@ private:
 	struct pollfd ufd;
 
 	ipv4addr_set accepts;
+
+	// client OOB update info
+	std::mutex mtx;
+	str_vec status;
+	uns status_max = 128;
+
+	void add_status_msg(const str& s)
+	{
+		if(status.size() < status_max)
+			status.push_back(s);
+		else
+			log("WARN: Dropping status message: " << s);
+	}
 
 	bool bind();
 	bool listen();
@@ -86,6 +100,10 @@ public:
 	std::string get_version() const override;
 
 	void exit() override;
+
+	// INTERFACE: IrcBotMonitor
+
+	void event(const message& msg) override;
 };
 
 }} // sookee::ircbot
