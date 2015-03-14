@@ -106,7 +106,8 @@ bool RServerIrcBotPlugin::bind()
 	ufd.fd = ss; // setup polling
 	ufd.events = POLLIN;
 
-	struct addrinfo hints, *res;
+	addrinfo hints;
+	addrinfo* res;
 
 	// first, load up address structs with getaddrinfo():
 
@@ -123,8 +124,40 @@ bool RServerIrcBotPlugin::bind()
 
 	gai_scoper scoper(res);
 
-	if(::bind(ss, res->ai_addr, res->ai_addrlen) == -1)
+	unsigned retry_pause_millis = bot.get("rserver.bind.retry.pause.millis", 500U);
+
+	bug_var(retry_pause_millis);
+
+	if(retry_pause_millis < 500)
+		retry_pause_millis = 500;
+
+	if(retry_pause_millis > 60000)
+		retry_pause_millis = 60000;
+
+	bug_var(retry_pause_millis);
+
+	unsigned retries = bot.get("rserver.bind.retries", 10U);
+
+	bug_var(retries);
+
+	if((retries * retry_pause_millis) / 1000 > 60 * 10) // max 10 minutes
+		retries = 60 * 10 * 1000 / retry_pause_millis; // 10 minutes
+
+	bug_var(retries);
+
+	hr_duration retry_pause = std::chrono::milliseconds(retry_pause_millis);
+
+	while(::bind(ss, res->ai_addr, res->ai_addrlen) == -1)
 	{
+		if(errno == EADDRINUSE && retries)
+		{
+			log("ADDRESS IN USE: retrying in: " << retry_pause_millis << "ms [" << retries << "]");
+			--retries;
+			hr_time_point wait = hr_clk::now() + retry_pause;
+			while(hr_clk::now() < wait)
+				std::this_thread::sleep_until(wait);
+			continue;
+		}
 		log("ERROR: " << std::strerror(errno));
 		return false;
 	}
