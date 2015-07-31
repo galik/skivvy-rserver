@@ -22,24 +22,24 @@
 # '-----------------------------------------------------------------*/
 
 AC_INIT([skivvy-rserver], [0.1], [oaskivvy@gmail.com], [skivvy-rserver], [https://github.com/sookee/skivvy-rserver])
+AC_CONFIG_AUX_DIR([aux])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/plugin-rserver.cpp])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([1.10 foreign])
-
+AM_SILENT_RULES
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
+
 AC_PROG_CXX
 AC_PROG_INSTALL
+AC_LANG_CPLUSPLUS
 
-AC_LANG(C++)
-AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
+AX_CXX_COMPILE_STDCXX_14([noext],[mandatory])
 
 PKG_CHECK_MODULES([SOOKEE], [libsookee])
 PKG_CHECK_MODULES([SKIVVY], [libskivvy])
 
-AC_CONFIG_MACRO_DIR([m4])
-
-AC_LANG_CPLUSPLUS
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT

@@ -49,6 +49,7 @@ http://www.gnu.org/licenses/gpl-2.0.html
 #include <skivvy/utils.h>
 #include <sookee/types.h>
 #include <skivvy/socketstream.h>
+#include <skivvy/irc-constants.h>
 
 namespace skivvy { namespace ircbot {
 
@@ -124,7 +125,7 @@ bool RServerIrcBotPlugin::bind()
 
 	gai_scoper scoper(res);
 
-	unsigned retry_pause_millis = bot.get("rserver.bind.retry.pause.millis", 500U);
+	unsigned retry_pause_millis = bot.get("rserver.bind.retry.pause.millis", 3000U);
 
 	bug_var(retry_pause_millis);
 
@@ -201,8 +202,8 @@ bool RServerIrcBotPlugin::listen()
 		}
 		else if(rv > 0)
 		{
-			bug_var(rv);
-			bug_var(ss);
+//			bug_var(rv);
+//			bug_var(ss);
 			if(ufd.revents & POLLIN)
 			{
 				if(this->done)
@@ -256,7 +257,7 @@ void RServerIrcBotPlugin::process(socket cs)
 //		cmd.append(1, c);
 	sgl(ss, cmd, '\0');
 
-	bug("cmd: " << cmd);
+//	bug("cmd: " << cmd);
 
 	if(trim(cmd).empty())
 		return;
@@ -321,16 +322,25 @@ bool RServerIrcBotPlugin::initialize()
 
 // INTERFACE: IrcBotMonitor
 
+static const str_vec event_commands
+{
+	  irc::NOTICE
+	, irc::MODE
+};
+
 void RServerIrcBotPlugin::event(const message& msg)
 {
 //	bug_func();
+	if(std::find(event_commands.begin(), event_commands.end(), msg.command) == event_commands.end())
+		return;
+
 	BUG_COMMAND(msg);
-	if(msg.command == "NOTICE")
+	if(msg.command == irc::NOTICE)
 	{
 		lock_guard lock(mtx);
 		add_status_msg(msg.get_trailing());
 	}
-	if(msg.command == "MODE")
+	if(msg.command == irc::MODE)
 	{
 		auto params = msg.get_params();
 		if(params.size() == 3 && params[2] == bot.nick)
