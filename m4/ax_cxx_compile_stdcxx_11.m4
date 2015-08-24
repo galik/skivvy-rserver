@@ -1,1 +1,0 @@
-/home/galik/dev/m4/ax_cxx_compile_stdcxx_11.m4

@@ -40,6 +40,7 @@ AX_CXX_COMPILE_STDCXX_14([noext],[mandatory])
 
 PKG_CHECK_MODULES([SOOKEE], [libsookee])
 PKG_CHECK_MODULES([SKIVVY], [libskivvy])
+#PKG_CHECK_MODULES([GCRYPT], [libgcrypt])
 
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT
