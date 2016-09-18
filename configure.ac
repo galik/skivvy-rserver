@@ -22,7 +22,7 @@
 # '-----------------------------------------------------------------*/
 
 AC_INIT([skivvy-rserver], [0.1], [oaskivvy@gmail.com], [skivvy-rserver], [https://github.com/sookee/skivvy-rserver])
-AC_CONFIG_AUX_DIR([aux])
+AC_CONFIG_AUX_DIR([aux-bits])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/plugin-rserver.cpp])
 AC_CONFIG_HEADERS([config.h])

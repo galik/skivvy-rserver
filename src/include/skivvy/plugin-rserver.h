@@ -42,7 +42,18 @@ http://www.gnu.org/licenses/gpl-2.0.html
 
 namespace skivvy { namespace ircbot {
 
+struct in6_addr_cmp
+{
+	bool operator()(const in6_addr& ip1, const in6_addr& ip2) const
+	{
+		char* ip1d = (char*) &ip1;
+		char* ip2d = (char*) &ip2;
+		return std::lexicographical_compare(ip1d, ip1d + sizeof(ip1), ip2d, ip2d + sizeof(ip2));
+	}
+};
+
 typedef std::set<in_addr_t> ipv4addr_set;
+typedef std::set<in6_addr, in6_addr_cmp> ipv6addr_set;
 
 /**
  *
@@ -63,7 +74,8 @@ private:
 
 	struct pollfd ufd;
 
-	ipv4addr_set accepts;
+	ipv4addr_set ipv4accepts;
+	ipv6addr_set ipv6accepts;
 
 	// client OOB update info
 	std::mutex mtx;

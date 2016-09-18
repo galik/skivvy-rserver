@@ -9,7 +9,7 @@ LIBDIR=$PREFIX/lib
 
 export PKG_CONFIG_PATH="$LIBDIR/pkgconfig"
 
-export CXXFLAGS="-g0 -O3 -D NDEBUG"
+export CXXFLAGS="-g0 -O3 -D NDEBUG -U DEBUG"
 
 rm -fr $top_dir/build-release
 mkdir -p $top_dir/build-release

@@ -60,10 +60,18 @@ using namespace sookee::types;
 using namespace skivvy::utils;
 using namespace sookee::utils;
 
-const str RSERVER_PORT = "rserver.port";
-const str RSERVER_PORT_DEFAULT = "7334";
-const str RSERVER_BIND = "rserver.bind";
-const str RSERVER_BIND_DEFAULT = "0.0.0.0";
+const str PORT_KEY = "rserver.port";
+const str PORT_VAL = "7334";
+const str BIND_KEY = "rserver.bind";
+const str BIND_VAL = "0.0.0.0";
+
+const auto BIND_RETRIES_KEY = "rserver.bind.retries";
+const auto BIND_RETRIES_VAL = 10U;
+const auto BIND_RETRY_PAUSE_KEY = "rserver.bind.retry.pause.ms";
+const auto BIND_RETRY_PAUSE_VAL = 10000U;
+
+const auto ACCEPT_IPV4_KEY = "rserver.accept.ipv4";
+const auto ACCEPT_IPV6_KEY = "rserver.accept.ipv6";
 
 RServerIrcBotPlugin::RServerIrcBotPlugin(IrcBot& bot)
 : BasicIrcBotPlugin(bot), ss(::socket(PF_INET, SOCK_STREAM, 0))
@@ -80,7 +88,7 @@ RServerIrcBotPlugin::RServerIrcBotPlugin(IrcBot& bot)
 
 //bool RServerIrcBotPlugin::bind()
 //{
-//	bug_func();
+//	bug_fun();
 //	port p = bot.get(RSERVER_PORT, RSERVER_PORT_DEFAULT);
 //	str host = bot.get(RSERVER_BIND, RSERVER_BIND_DEFAULT);
 //	sockaddr_in addr;
@@ -100,9 +108,9 @@ struct gai_scoper
 
 bool RServerIrcBotPlugin::bind()
 {
-	bug_func();
-	str port = bot.get(RSERVER_PORT, RSERVER_PORT_DEFAULT);
-	str host = bot.get(RSERVER_BIND, RSERVER_BIND_DEFAULT);
+//	bug_fun();
+	str port = bot.get(PORT_KEY, PORT_VAL);
+	str host = bot.get(BIND_KEY, BIND_VAL);
 
 	ufd.fd = ss; // setup polling
 	ufd.events = POLLIN;
@@ -125,9 +133,9 @@ bool RServerIrcBotPlugin::bind()
 
 	gai_scoper scoper(res);
 
-	unsigned retry_pause_millis = bot.get("rserver.bind.retry.pause.millis", 3000U);
+	unsigned retry_pause_millis = bot.get(BIND_RETRY_PAUSE_KEY, BIND_RETRY_PAUSE_VAL);
 
-	bug_var(retry_pause_millis);
+//	bug_var(retry_pause_millis);
 
 	if(retry_pause_millis < 500)
 		retry_pause_millis = 500;
@@ -135,16 +143,16 @@ bool RServerIrcBotPlugin::bind()
 	if(retry_pause_millis > 60000)
 		retry_pause_millis = 60000;
 
-	bug_var(retry_pause_millis);
+//	bug_var(retry_pause_millis);
 
-	unsigned retries = bot.get("rserver.bind.retries", 10U);
+	unsigned retries = bot.get(BIND_RETRIES_KEY, BIND_RETRIES_VAL);
 
-	bug_var(retries);
+//	bug_var(retries);
 
 	if((retries * retry_pause_millis) / 1000 > 60 * 10) // max 10 minutes
 		retries = 60 * 10 * 1000 / retry_pause_millis; // 10 minutes
 
-	bug_var(retries);
+//	bug_var(retries);
 
 	hr_duration retry_pause = std::chrono::milliseconds(retry_pause_millis);
 
@@ -175,7 +183,7 @@ bool RServerIrcBotPlugin::bind()
 
 bool RServerIrcBotPlugin::listen()
 {
-	bug_func();
+//	bug_fun();
 	if(!bind())
 	{
 		log("ERROR: " << std::strerror(errno));
@@ -220,21 +228,37 @@ bool RServerIrcBotPlugin::listen()
 				}
 				else if(!this->done)
 				{
-					if(connectee.sa_family != AF_INET)
+					if(connectee.sa_family == AF_INET6)
 					{
-						log("WARN: only accepting connections for ipv4");
-						::close(cs);
-						continue;
+						if(ipv6accepts.empty() || ipv6accepts.count(((sockaddr_in6*) &connectee)->sin6_addr))
+							std::async(std::launch::async, [&]{ process(cs); });
+						else
+						{
+							::close(cs);
+							in6_addr in = ((sockaddr_in6*) &connectee)->sin6_addr;
+							char buf[INET6_ADDRSTRLEN];
+							str ip = inet_ntop(AF_INET6, &in, buf, INET6_ADDRSTRLEN);
+							log("SECURITY: rejecting unauthorized connection attempt: " << ip);
+						}
 					}
-					if(accepts.empty() || accepts.count(((sockaddr_in*) &connectee)->sin_addr.s_addr))
-						std::async(std::launch::async, [&]{ process(cs); });
+					else if(connectee.sa_family == AF_INET)
+					{
+						if(ipv4accepts.empty() || ipv4accepts.count(((sockaddr_in*) &connectee)->sin_addr.s_addr))
+							std::async(std::launch::async, [&]{ process(cs); });
+						else
+						{
+							::close(cs);
+							in_addr_t in = ((sockaddr_in*) &connectee)->sin_addr.s_addr;
+							char buf[INET_ADDRSTRLEN];
+							str ip = inet_ntop(AF_INET, &in, buf, INET_ADDRSTRLEN);
+							log("SECURITY: rejecting unauthorized connection attempt: " << ip);
+						}
+					}
 					else
 					{
+						log("WARN: only accepting connections for ipv4 & ipv6");
 						::close(cs);
-						in_addr_t in = ((sockaddr_in*) &connectee)->sin_addr.s_addr;
-						char buf[INET_ADDRSTRLEN];
-						str ip = inet_ntop(AF_INET, &in, buf, INET_ADDRSTRLEN);
-						log("SECURITY: rejecting unauthorized connection attempt: " << ip);
+						continue;
 					}
 				}
 			}
@@ -280,39 +304,62 @@ void RServerIrcBotPlugin::process(socket cs)
 void RServerIrcBotPlugin::on(const message& msg)
 {
 	(void) msg;
-	BUG_COMMAND(msg);
+//	BUG_COMMAND(msg);
 }
 
 void RServerIrcBotPlugin::off(const message& msg)
 {
 	(void) msg;
-	BUG_COMMAND(msg);
+//	BUG_COMMAND(msg);
 }
 
 bool RServerIrcBotPlugin::initialize()
 {
-	bug_func();
+	bug_fun();
 
-	str_vec ips = bot.get_vec("rserver.accept.ipv4");
-
-	in_addr_t in;
-
-	for(const str& ip: ips)
 	{
-		int e = inet_pton(AF_INET, ip.c_str(), &in);
+		str_vec ips = bot.get_vec(ACCEPT_IPV4_KEY);
 
-		if(e == -1)
-			log("ERROR: " << strerror(errno));
-		else if(e == 0)
-			log("ERROR: ipv4 address not valid: " << ip);
-		else if(e == 1)
+		in_addr_t in = {};
+
+		for(const str& ip: ips)
 		{
-			accepts.insert(in);
-			log("ADDING ALLOWED IPv4: " << ip);
+			int e = inet_pton(AF_INET, ip.c_str(), &in);
+
+			if(e == -1)
+				log("ERROR: " << strerror(errno));
+			else if(e == 0)
+				log("ERROR: ipv4 address not valid: " << ip);
+			else if(e == 1)
+			{
+				ipv4accepts.insert(in);
+				log("ADDING ALLOWED IPv4: " << ip);
+			}
 		}
 	}
 
-	log("RSERVER: " << (accepts.empty()?"INSECURE":"SECURE") << " MODE");
+	{
+		str_vec ips = bot.get_vec(ACCEPT_IPV6_KEY);
+
+		in6_addr in = {};
+
+		for(const str& ip: ips)
+		{
+			int e = inet_pton(AF_INET6, ip.c_str(), &in);
+
+			if(e == -1)
+				log("ERROR: " << strerror(errno));
+			else if(e == 0)
+				log("ERROR: ipv6 address not valid: " << ip);
+			else if(e == 1)
+			{
+				ipv6accepts.insert(in);
+				log("ADDING ALLOWED IPv6: " << ip);
+			}
+		}
+	}
+
+	log("RSERVER: " << ((ipv4accepts.empty() && ipv6accepts.empty())?"INSECURE":"SECURE") << " MODE");
 
 	con = std::async(std::launch::async, [&]{ listen(); });
 
@@ -330,11 +377,11 @@ static const str_vec event_commands
 
 void RServerIrcBotPlugin::event(const message& msg)
 {
-//	bug_func();
+//	bug_fun();
 	if(std::find(event_commands.begin(), event_commands.end(), msg.command) == event_commands.end())
 		return;
 
-	BUG_COMMAND(msg);
+//	BUG_COMMAND(msg);
 	if(msg.command == irc::NOTICE)
 	{
 		lock_guard lock(mtx);
