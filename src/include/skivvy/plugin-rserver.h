@@ -1,6 +1,6 @@
 #pragma once
-#ifndef _SOOKEE_IRCBOT_RSERVER_H_
-#define _SOOKEE_IRCBOT_RSERVER_H_
+#ifndef SKIVVY_IRCBOT_RSERVER_H
+#define SKIVVY_IRCBOT_RSERVER_H
 /*
  * ircbot-rserver.h
  *
@@ -38,9 +38,17 @@ http://www.gnu.org/licenses/gpl-2.0.html
 #include <set>
 
 #include <netinet/in.h>
-#include <sys/poll.h>
+//#include <sys/poll.h>
+#include <hol/simple_logger.h>
 
-namespace skivvy { namespace ircbot {
+#include <boost/asio.hpp>
+
+namespace skivvy {
+namespace ircbot {
+namespace rserver {
+
+using namespace boost;
+using namespace hol::simple_logger;
 
 struct in6_addr_cmp
 {
@@ -52,8 +60,8 @@ struct in6_addr_cmp
 	}
 };
 
-typedef std::set<in_addr_t> ipv4addr_set;
-typedef std::set<in6_addr, in6_addr_cmp> ipv6addr_set;
+using ipv4addr_set = std::set<asio::ip::address_v4>;
+using ipv6addr_set = std::set<asio::ip::address_v6>;
 
 /**
  *
@@ -62,41 +70,6 @@ class RServerIrcBotPlugin
 : public BasicIrcBotPlugin
 , public IrcBotMonitor
 {
-	typedef int socket;
-public:
-	typedef long port;
-
-private:
-	socket ss; // server socket
-	std::future<void> con;
-	std::atomic<bool> done;
-	std::atomic<bool> dusted;
-
-	struct pollfd ufd;
-
-	ipv4addr_set ipv4accepts;
-	ipv6addr_set ipv6accepts;
-
-	// client OOB update info
-	std::mutex mtx;
-	str_vec status;
-	uns status_max = 128;
-
-	void add_status_msg(const str& s)
-	{
-		if(status.size() < status_max)
-			status.push_back(s);
-		else
-			log("WARN: Dropping status message: " << s);
-	}
-
-	bool bind();
-	bool listen();
-	void process(socket cs);
-
-	void on(const message& msg);
-	void off(const message& msg);
-
 public:
 	RServerIrcBotPlugin(IrcBot& bot);
 	//virtual ~RServerIrcBotPlugin() {}
@@ -116,8 +89,43 @@ public:
 	// INTERFACE: IrcBotMonitor
 
 	void event(const message& msg) override;
+
+private:
+	void add_status_msg(const str& s)
+	{
+		if(status.size() < status_max)
+			status.push_back(s);
+		else
+			LOG::W << "WARN: Dropping status message: " << s;
+	}
+
+//	void close() { if(ss.is_open()) ss.close(); }
+
+//	bool bind();
+	bool accept();
+	void process(asio::ip::tcp::socket cs);
+
+	void on(const message& msg);
+	void off(const message& msg);
+
+//	asio::io_service io_service;
+//	asio::ip::tcp::acceptor acceptor;
+
+	std::future<bool> con;
+	std::atomic<bool> done;
+	std::atomic<bool> dusted;
+
+	ipv4addr_set ipv4accepts;
+	ipv6addr_set ipv6accepts;
+
+	// client OOB update info
+	mutable std::mutex mtx;
+	str_vec status;
+	uns status_max = 128;
 };
 
-}} // sookee::ircbot
+} // rserver
+} // ircbot
+} // skivvy
 
-#endif // _SOOKEE_IRCBOT_RSERVER_H_
+#endif // SKIVVY_IRCBOT_RSERVER_H

@@ -8,8 +8,8 @@ PREFIX=${PREFIX:-$HOME/dev}
 LIBDIR=$PREFIX/lib
 
 export PKG_CONFIG_PATH="$LIBDIR/pkgconfig"
-
-export CXXFLAGS="-g3 -O0 -D DEBUG -U NDEBUG"
+# TODO: Fix need for -std=c++14 flag here
+export CXXFLAGS="-std=c++14 -g3 -O0 -D DEBUG -U NDEBUG"
 
 rm -fr $top_dir/build-debug
 mkdir -p $top_dir/build-debug
