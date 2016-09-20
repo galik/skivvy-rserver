@@ -21,7 +21,7 @@
 # 
 # '-----------------------------------------------------------------*/
 
-AC_INIT([skivvy-rserver], [0.1], [oaskivvy@gmail.com], [skivvy-rserver], [https://github.com/sookee/skivvy-rserver])
+AC_INIT([skivvy-rserver], [0.6.0], [oaskivvy@gmail.com], [skivvy-rserver], [https://github.com/sookee/skivvy-rserver])
 AC_CONFIG_AUX_DIR([aux-bits])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/plugin-rserver.cpp])
@@ -38,9 +38,7 @@ AC_LANG_CPLUSPLUS
 
 AX_CXX_COMPILE_STDCXX_14([noext],[mandatory])
 
-PKG_CHECK_MODULES([SOOKEE], [libsookee])
 PKG_CHECK_MODULES([SKIVVY], [libskivvy])
-#PKG_CHECK_MODULES([GCRYPT], [libgcrypt])
 
 AX_BOOST_BASE([1.6],, [AC_MSG_ERROR([skivvy needs Boost v1.6, but it was not found in your system])])
 AX_BOOST_ASIO

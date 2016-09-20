@@ -21,11 +21,7 @@
 # 
 # '-----------------------------------------------------------------*/
 
-skivvy_includedir = $(prefix)/include/skivvy
-plugin_includedir = $(prefix)/include/skivvy
-skivvy_include_bitsdir = $(prefix)/include/skivvy/bits
-skivvy_librarydir = $(libdir)/skivvy
-skivvy_manualsdir = $(datadir)/skivvy
+plugin_includedir = $(includedir)/skivvy
 plugin_librarydir = $(libdir)/skivvy
 plugin_manualsdir = $(mandir)/skivvy
 
@@ -39,21 +35,25 @@ DEF_FLAGS = \
 GEN_FLAGS = -Wl,-E -Wfatal-errors -Wall -Wextra -Winit-self -ansi -pedantic -pipe -pthread \
 	-I$(top_srcdir)/src/include
 
-HOL_INCS = -I$(HOME)/dev/header-only
-GSL_INCS = -I$(HOME)/dev/GSL
-RNG_INCS = -I$(HOME)/dev/range-v3/include
-DATE_INCS =  -I$(HOME)/dev/date
-STDFS_LIBS = -lstdc++fs
+# Need to have set
+# $(GSL_INCS)   Guideline Support Library
+# $(RNG_INCS)   ranges/v3
+# $(DATE_INCS)  Hinnon's date
+# $(HOL_INCS)
 
-STD_INCS = $(GSL_INCS) $(RNG_INCS) $(DATE_INCS) $(HOL_INCS)
-STD_LIBS = $(STDFS_LIBS)
+ASIO_LIBS = \
+	$(BOOST_SYSTEM_LIB) \
+	$(BOOST_ASIO_LIB)
 
-AM_CPPFLAGS = $(SOOKEE_CFLAGS) $(SKIVVY_CFLAGS) $(STD_INCS) $(OPENSSL_CFLAGS) $(BOOST_CPPFLAGS)
+STD_INCS = $(GSL_INCS) $(RNG_INCS) $(DATE_INCS) $(HOL_INCS) $(BOOST_CPPFLAGS)
+STD_LIBS = $(STDFS_LIBS) $(ASIO_LIBS)
+
+AM_CPPFLAGS = $(SKIVVY_CFLAGS) $(STD_INCS) $(OPENSSL_CFLAGS)
 AM_CXXFLAGS = $(GEN_FLAGS) $(DEF_FLAGS)
 AM_LDFLAGS = $(BOOST_LDFLAGS)
 
 # -Wl,-E is required for programs that load plugin's
-PLUGIN_FLAGS = -Wl,-E
+PLUGIN_LDFLAGS = -module -avoid-version -Wl,-E
 
 plugin_include_HEADERS = \
 	$(srcdir)/include/skivvy/plugin-rserver.h
@@ -63,8 +63,8 @@ plugin_library_LTLIBRARIES =  \
 
 # IrcBot plugins
 skivvy_plugin_rserver_la_SOURCES = plugin-rserver.cpp
-skivvy_plugin_rserver_la_LDFLAGS = -module -avoid-version $(PLUGIN_FLAGS) $(BOOST_LDFLAGS)
-skivvy_plugin_rserver_la_LIBADD =  $(SOOKEE_LIBS) $(SKIVVY_LIBS) $(STD_LIBS) $(BOOST_LIBS) -L.libs
+skivvy_plugin_rserver_la_LDFLAGS = $(PLUGIN_LDFLAGS) $(AM_LDFLAGS)
+skivvy_plugin_rserver_la_LIBADD =  $(SKIVVY_LIBS) $(STD_LIBS) -L.libs
 
 plugin_manuals_DATA = $(top_srcdir)/docs/rserver-manual.text
 
