@@ -61,7 +61,7 @@ namespace ircbot {
 namespace rserver {
 
 IRC_BOT_PLUGIN(RServerIrcBotPlugin);
-PLUGIN_INFO("rserver", "Remote Server", "0.1");
+PLUGIN_INFO("rserver", "Remote Server", "0.6.0");
 
 using namespace skivvy::utils;
 using namespace hol::small_types::basic;

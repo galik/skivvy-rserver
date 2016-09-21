@@ -64,7 +64,7 @@ plugin_library_LTLIBRARIES =  \
 # IrcBot plugins
 skivvy_plugin_rserver_la_SOURCES = plugin-rserver.cpp
 skivvy_plugin_rserver_la_LDFLAGS = $(PLUGIN_LDFLAGS) $(AM_LDFLAGS)
-skivvy_plugin_rserver_la_LIBADD =  $(SKIVVY_LIBS) $(STD_LIBS) -L.libs
+skivvy_plugin_rserver_la_LIBADD  = $(SKIVVY_LIBS) $(STD_LIBS) -L.libs
 
 plugin_manuals_DATA = $(top_srcdir)/docs/rserver-manual.text
 
