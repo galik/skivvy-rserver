@@ -99,21 +99,22 @@ private:
 			LOG::W << "WARN: Dropping status message: " << s;
 	}
 
-//	void close() { if(ss.is_open()) ss.close(); }
+	void accept();
+	void handle_client(boost::system::error_code const& ec,
+		std::shared_ptr<asio::ip::tcp::socket> cs);
 
-//	bool bind();
-	bool accept();
-	void process(asio::ip::tcp::socket cs);
+//	bool accept();
+	void process(std::shared_ptr<asio::ip::tcp::socket> cs);//asio::ip::tcp::socket cs);
 
 	void on(const message& msg);
 	void off(const message& msg);
 
-//	asio::io_service io_service;
-//	asio::ip::tcp::acceptor acceptor;
+	std::future<void> con;
+//	std::atomic<bool> done;
+//	std::atomic<bool> dusted;
 
-	std::future<bool> con;
-	std::atomic<bool> done;
-	std::atomic<bool> dusted;
+	asio::io_service io_service;
+	asio::ip::tcp::acceptor acceptor;
 
 	ipv4addr_set ipv4accepts;
 	ipv6addr_set ipv6accepts;
