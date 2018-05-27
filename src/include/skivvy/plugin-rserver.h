@@ -48,7 +48,7 @@ namespace ircbot {
 namespace rserver {
 
 using namespace boost;
-using namespace hol::simple_logger;
+using namespace header_only_library::simple_logger;
 
 struct in6_addr_cmp
 {

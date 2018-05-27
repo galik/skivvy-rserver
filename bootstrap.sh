@@ -1,4 +1,5 @@
-#! /bin/sh
+#!/bin/bash
+
 mkdir -p m4
 mkdir -p aux-bits
 autoheader --warnings=all

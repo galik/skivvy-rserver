@@ -61,8 +61,8 @@ IRC_BOT_PLUGIN(RServerIrcBotPlugin);
 PLUGIN_INFO("rserver", "Remote Server", "0.6.0");
 
 using namespace skivvy::utils;
-using namespace hol::small_types::basic;
-using namespace hol::simple_logger;
+using namespace header_only_library::small_types::basic;
+using namespace header_only_library::simple_logger;
 using namespace boost;
 
 using clock = std::chrono::system_clock;
